@@ -101,7 +101,7 @@ public class TestParquetWriter {
   /**
    * A test OutputFile implementation to validate the scenario of an OutputFile is implemented by an API client.
    */
-  private static class TestOutputFile implements OutputFile {
+  public static class TestOutputFile implements OutputFile {
 
     private final OutputFile outputFile;
 
