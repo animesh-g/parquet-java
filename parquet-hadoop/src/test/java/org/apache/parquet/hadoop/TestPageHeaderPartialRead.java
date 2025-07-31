@@ -1,15 +1,14 @@
 package org.apache.parquet.hadoop;
 
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.NotActiveException;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.parquet.column.ParquetProperties;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.example.data.simple.SimpleGroupFactory;
@@ -54,54 +53,6 @@ public class TestPageHeaderPartialRead {
 
     // 2. Write a simple Parquet file to an in-memory byte array
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    // Path fsPath = new Path("test.parquet");
-    // OutputFile newFile = new MemoryOutputFile(baos);
-    // try (ParquetWriter<Group> writer = new ParquetWriter<>(
-    //     // new ParquetWriter.StreamOutputFile(baos),
-    //     // HadoopOutputFile.fromPath(fsPath),
-    //     newFile,
-    //     ParquetFileWriter.Mode.CREATE,
-    //     new GroupWriteSupport(),
-    //     org.apache.parquet.hadoop.metadata.CompressionCodecName.UNCOMPRESSED,
-    //     null,
-    //     1024, // Block size
-    //     1024, // Page size
-    //     false, // Dictionary enabled
-    //     false, // Validating
-    //     org.apache.parquet.column.ParquetProperties.WriterVersion.PARQUET_1_0,
-    //     conf)) {
-    // try (ParquetWriter<Group> writer = new ParquetWriter<>(
-    //     fsPath,
-    //     new GroupWriteSupport(),
-    //     CompressionCodecName.UNCOMPRESSED,
-    //     1024,
-    //     1024,
-    //     512,
-    //     true,
-    //     false,
-    //     ParquetProperties.WriterVersion.PARQUET_2_0,
-    //     conf)) {
-    //   writer.write(groupFactory.newGroup().append("name", "parquet"));
-    // }
-    // OutputFile file = new TestParquetWriter.TestOutputFile(fsPath, conf);
-    // // TODO: fix this to use actual file bytes.
-    // parquetFileBytes = baos.toByteArray();
-
-    // OutputFile newFile = new MemoryOutputFile(baos);
-    // try (ParquetWriter<Group> writer = ParquetWriter.builder(newFile)
-    //     .withWriteSupport(new GroupWriteSupport())
-    //     .withCompressionCodec(CompressionCodecName.UNCOMPRESSED)
-    //     .withRowGroupSize(1024)
-    //     .withPageSize(1024)
-    //     .withPageRowCountLimit(512)
-    //     .withEnableDictionary(true)
-    //     .withValidation(false)
-    //     .withWriterVersion(ParquetProperties.WriterVersion.PARQUET_2_0)
-    //     .withConf(conf)
-    //     .build()) {
-    //   writer.write(groupFactory.newGroup().append("name", "parquet"));
-    // }
-    // parquetFileBytes = baos.toByteArray();
 
     GroupWriteSupport.setSchema(schema, conf);
     OutputFile newFile = new MemoryOutputFile(baos);
@@ -170,19 +121,11 @@ public class TestPageHeaderPartialRead {
     PartialReadInputStream faultyStream = new PartialReadInputStream(underlyingStream, absoluteFaultPosition);
 
     // Assert that attempting to read the header from this faulty stream throws the expected exception
-    // Exception e = assertThrows("A partial read within the PageHeader should cause an IOException.",
-    // IOException.class, () -> {
-    //   faultyStream.seek(pageHeaderOffset);
-    //   Util.readPageHeader(faultyStream);
-    // } );
-    Exception e = new NotActiveException();
-    try {
-      faultyStream.seek(pageHeaderOffset);
-      Util.readPageHeader(faultyStream);
-    } catch (Exception ex) {
-      e = ex;
-      System.out.printf("Received exception with message %s", e.getMessage());
-    }
+    Exception e = assertThrows(
+        "A partial read within the PageHeader should cause an IOException.", IOException.class, () -> {
+          faultyStream.seek(pageHeaderOffset);
+          Util.readPageHeader(faultyStream);
+        });
 
     // Verify that the root cause is the TProtocolException
     Throwable cause = e;
