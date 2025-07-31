@@ -15,6 +15,7 @@ import org.apache.parquet.example.data.Group;
 import org.apache.parquet.example.data.simple.SimpleGroupFactory;
 import org.apache.parquet.format.PageHeader;
 import org.apache.parquet.format.Util;
+import org.apache.parquet.hadoop.example.ExampleParquetWriter;
 import org.apache.parquet.hadoop.example.GroupWriteSupport;
 import org.apache.parquet.hadoop.metadata.BlockMetaData;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
@@ -53,8 +54,8 @@ public class TestPageHeaderPartialRead {
 
     // 2. Write a simple Parquet file to an in-memory byte array
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    Path fsPath = new Path("test.parquet");
-    OutputFile newFile = new MemoryOutputFile(baos);
+    // Path fsPath = new Path("test.parquet");
+    // OutputFile newFile = new MemoryOutputFile(baos);
     // try (ParquetWriter<Group> writer = new ParquetWriter<>(
     //     // new ParquetWriter.StreamOutputFile(baos),
     //     // HadoopOutputFile.fromPath(fsPath),
@@ -69,21 +70,51 @@ public class TestPageHeaderPartialRead {
     //     false, // Validating
     //     org.apache.parquet.column.ParquetProperties.WriterVersion.PARQUET_1_0,
     //     conf)) {
-    try (ParquetWriter<Group> writer = new ParquetWriter<>(
-        fsPath,
-        new GroupWriteSupport(),
-        CompressionCodecName.UNCOMPRESSED,
-        1024,
-        1024,
-        512,
-        true,
-        false,
-        ParquetProperties.WriterVersion.PARQUET_2_0,
-        conf)) {
+    // try (ParquetWriter<Group> writer = new ParquetWriter<>(
+    //     fsPath,
+    //     new GroupWriteSupport(),
+    //     CompressionCodecName.UNCOMPRESSED,
+    //     1024,
+    //     1024,
+    //     512,
+    //     true,
+    //     false,
+    //     ParquetProperties.WriterVersion.PARQUET_2_0,
+    //     conf)) {
+    //   writer.write(groupFactory.newGroup().append("name", "parquet"));
+    // }
+    // OutputFile file = new TestParquetWriter.TestOutputFile(fsPath, conf);
+    // // TODO: fix this to use actual file bytes.
+    // parquetFileBytes = baos.toByteArray();
+
+    // OutputFile newFile = new MemoryOutputFile(baos);
+    // try (ParquetWriter<Group> writer = ParquetWriter.builder(newFile)
+    //     .withWriteSupport(new GroupWriteSupport())
+    //     .withCompressionCodec(CompressionCodecName.UNCOMPRESSED)
+    //     .withRowGroupSize(1024)
+    //     .withPageSize(1024)
+    //     .withPageRowCountLimit(512)
+    //     .withEnableDictionary(true)
+    //     .withValidation(false)
+    //     .withWriterVersion(ParquetProperties.WriterVersion.PARQUET_2_0)
+    //     .withConf(conf)
+    //     .build()) {
+    //   writer.write(groupFactory.newGroup().append("name", "parquet"));
+    // }
+    // parquetFileBytes = baos.toByteArray();
+
+    GroupWriteSupport.setSchema(schema, conf);
+    OutputFile newFile = new MemoryOutputFile(baos);
+
+    try (ParquetWriter<Group> writer = ExampleParquetWriter.builder(newFile)
+        .withConf(conf)
+        .withCompressionCodec(CompressionCodecName.UNCOMPRESSED)
+        .withRowGroupSize(1024)
+        .withPageSize(1024)
+        .withWriterVersion(ParquetProperties.WriterVersion.PARQUET_2_0)
+        .build()) {
       writer.write(groupFactory.newGroup().append("name", "parquet"));
     }
-    OutputFile file = new TestParquetWriter.TestOutputFile(fsPath, conf);
-    // TODO: fix this to use actual file bytes.
     parquetFileBytes = baos.toByteArray();
 
     // 3. Read the file metadata to find the offset and size of the first page header
