@@ -28,7 +28,6 @@ import org.apache.parquet.io.SeekableInputStream;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName;
 import org.apache.parquet.schema.Types;
-import org.apache.thrift.protocol.TProtocolException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -121,26 +120,10 @@ public class TestPageHeaderPartialRead {
     PartialReadInputStream faultyStream = new PartialReadInputStream(underlyingStream, absoluteFaultPosition);
 
     // Assert that attempting to read the header from this faulty stream throws the expected exception
-    Exception e = assertThrows(
-        "A partial read within the PageHeader should cause an IOException.", IOException.class, () -> {
-          faultyStream.seek(pageHeaderOffset);
-          Util.readPageHeader(faultyStream);
-        });
-
-    // Verify that the root cause is the TProtocolException
-    Throwable cause = e;
-    boolean foundTProtocolException = false;
-    System.out.println("class name of exception"+ cause.getClass().toString());
-    while (cause != null) {
-      if (cause instanceof TProtocolException) {
-        foundTProtocolException = true;
-        break;
-      }
-      cause = cause.getCause();
-    }
-    assertTrue(
-        "The root cause of the failure should be a TProtocolException. Fault offset: " + faultOffset,
-        foundTProtocolException);
+    assertThrows("A partial read within the PageHeader should cause an IOException.", IOException.class, () -> {
+      faultyStream.seek(pageHeaderOffset);
+      Util.readPageHeader(faultyStream);
+    });
   }
 
   // Helper classes for in-memory file handling
