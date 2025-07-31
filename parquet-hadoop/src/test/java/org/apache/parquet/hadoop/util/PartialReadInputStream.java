@@ -7,8 +7,7 @@ import org.apache.parquet.io.DelegatingSeekableInputStream;
 /**
  * A SeekableInputStream wrapper that simulates a partial read at a specific position.
  * It reads normally until a designated fault position is reached. At that point,
- * it returns a single byte to simulate a short read from a network stream,
- * after which it resumes normal operation.
+ * return -1 to simulate EOF.
  */
 public class PartialReadInputStream extends DelegatingSeekableInputStream {
 
