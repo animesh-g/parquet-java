@@ -131,7 +131,7 @@ public class TestPageHeaderPartialRead {
     Throwable cause = e;
     boolean foundTProtocolException = false;
     while (cause != null) {
-      if (cause instanceof TProtocolException) {
+      if (cause instanceof TTransportException) {
         foundTProtocolException = true;
         break;
       }
