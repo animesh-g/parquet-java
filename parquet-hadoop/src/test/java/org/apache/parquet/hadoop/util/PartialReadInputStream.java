@@ -30,17 +30,21 @@ public class PartialReadInputStream extends DelegatingSeekableInputStream {
   public int read(byte[] b, int off, int len) throws IOException {
     long currentPos = getPos();
 
-    if (!faultInjected && currentPos >= faultTriggerPosition) {
-      // Inject the fault: perform a single-byte read to simulate a partial read.
+    // If the read position is at or beyond the fault trigger,
+    // simulate a premature end-of-file.
+    if (currentPos >= faultTriggerPosition) {
       faultInjected = true;
-      int byteRead = super.read();
-      if (byteRead == -1) {
-        return -1;
-      }
-      b[off] = (byte) byteRead;
-      return 1; // Return 1 to signify a partial read.
+      return -1; // Simulate EOF
     }
 
+    // If the current read request would cross the fault boundary,
+    // truncate the read to stop exactly at the fault position.
+    if ((currentPos + len) > faultTriggerPosition) {
+      int truncatedLen = (int) (faultTriggerPosition - currentPos);
+      return super.read(b, off, truncatedLen);
+    }
+
+    // Otherwise, perform a normal read.
     return super.read(b, off, len);
   }
 
