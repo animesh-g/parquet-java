@@ -28,6 +28,7 @@ import org.apache.parquet.io.SeekableInputStream;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName;
 import org.apache.parquet.schema.Types;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -101,12 +102,26 @@ public class TestPageHeaderPartialRead {
       stream.seek(pageHeaderOffset);
       Util.readPageHeader(stream);
     } catch (Exception e) {
-      System.out.printf("Received exception with message %s", e.getMessage());
+      Assert.fail("Received exception with message " + e.getMessage());
     }
-    // assertDoesNotThrow(() -> {
-    //   stream.seek(pageHeaderOffset);
-    //   Util.readPageHeader(stream);
-    // }, "Reading a valid PageHeader should not throw an exception.");
+  }
+
+  @Test
+  public void intermediatePartialReadWithinPageHeaderShouldNotThrowException() {
+    int faultOffset = 10;
+    // The absolute position in the stream to inject the fault
+    long absoluteFaultPosition = pageHeaderOffset + faultOffset;
+
+    // Create a seekable stream and wrap it with our fault-injecting stream
+    SeekableInputStream underlyingStream = new MemoryInputFile(parquetFileBytes).newStream();
+    PartialReadInputStream faultyStream =
+        new PartialReadInputStream(underlyingStream, absoluteFaultPosition, false);
+    try {
+      faultyStream.seek(pageHeaderOffset);
+      Util.readPageHeader(faultyStream);
+    } catch (Exception e) {
+      Assert.fail("Received exception with message " + e.getMessage());
+    }
   }
 
   @Test
