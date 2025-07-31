@@ -132,7 +132,7 @@ public class TestPageHeaderPartialRead {
 
     // Create a seekable stream and wrap it with our fault-injecting stream
     SeekableInputStream underlyingStream = new MemoryInputFile(parquetFileBytes).newStream();
-    PartialReadInputStream faultyStream = new PartialReadInputStream(underlyingStream, absoluteFaultPosition);
+    PartialReadInputStream faultyStream = new PartialReadInputStream(underlyingStream, absoluteFaultPosition, true);
 
     // Assert that attempting to read the header from this faulty stream throws the expected exception
     assertThrows("A partial read within the PageHeader should cause an IOException.", IOException.class, () -> {
