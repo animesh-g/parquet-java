@@ -39,7 +39,7 @@ public class TestPageHeaderPartialRead {
   private static int pageHeaderLength;
 
   @Before
-  public static void setup() throws IOException {
+  public void setup() throws IOException {
     // 1. Define a simple schema
     MessageType schema = Types.buildMessage()
         .required(PrimitiveTypeName.BINARY)
