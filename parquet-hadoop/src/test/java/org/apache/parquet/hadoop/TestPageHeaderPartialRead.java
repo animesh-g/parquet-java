@@ -130,8 +130,9 @@ public class TestPageHeaderPartialRead {
     // Verify that the root cause is the TProtocolException
     Throwable cause = e;
     boolean foundTProtocolException = false;
+    System.out.println("class name of exception"+ cause.getClass().toString());
     while (cause != null) {
-      if (cause instanceof TTransportException) {
+      if (cause instanceof TProtocolException) {
         foundTProtocolException = true;
         break;
       }
