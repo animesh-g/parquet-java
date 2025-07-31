@@ -1,8 +1,8 @@
 package org.apache.parquet.hadoop.util;
 
-import org.apache.parquet.io.DelegatingSeekableInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import org.apache.parquet.io.DelegatingSeekableInputStream;
 
 /**
  * A SeekableInputStream wrapper that simulates a partial read at a specific position.
