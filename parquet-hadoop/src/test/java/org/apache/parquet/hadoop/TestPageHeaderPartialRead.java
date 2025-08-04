@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -55,8 +56,8 @@ public class TestPageHeaderPartialRead {
   @Before
   public void setup() throws IOException {
     if (READ_FROM_DISK) {
-      // File file = new File(PARQUET_FILE_PATH);
-      filePath = new Path(PARQUET_FILE_PATH);
+      File file = new File(PARQUET_FILE_PATH);
+      filePath = new Path(file.toURI());
     } else {
       // 1. Define a simple schema
       MessageType schema = Types.buildMessage()
@@ -124,8 +125,7 @@ public class TestPageHeaderPartialRead {
   // Full read of PageHeader from a valid stream should succeed.
   @Test
   public void fullReadOfPageHeaderShouldSucceed() {
-    SeekableInputStream stream = new MemoryInputFile(parquetFileBytes).newStream();
-    try {
+    try(SeekableInputStream stream = getInputFile().newStream()) {
       stream.seek(pageHeaderOffset);
       Util.readPageHeader(stream);
     } catch (Exception e) {
@@ -134,38 +134,40 @@ public class TestPageHeaderPartialRead {
   }
 
   @Test
-  public void intermediatePartialReadWithinPageHeaderShouldNotThrowException() {
+  public void intermediatePartialReadWithinPageHeaderShouldNotThrowException() throws IOException {
     int faultOffset = 10;
     // The absolute position in the stream to inject the fault
     long absoluteFaultPosition = pageHeaderOffset + faultOffset;
 
-    // Create a seekable stream and wrap it with our fault-injecting stream
-    SeekableInputStream underlyingStream = new MemoryInputFile(parquetFileBytes).newStream();
-    PartialReadInputStream faultyStream =
-        new PartialReadInputStream(underlyingStream, absoluteFaultPosition, false);
-    try {
-      faultyStream.seek(pageHeaderOffset);
-      Util.readPageHeader(faultyStream);
-    } catch (Exception e) {
-      Assert.fail("Received exception with message " + e.getMessage());
+    try (SeekableInputStream underlyingStream = getInputFile().newStream()) {
+      // Create a seekable stream and wrap it with our fault-injecting stream
+      PartialReadInputStream faultyStream =
+          new PartialReadInputStream(underlyingStream, absoluteFaultPosition, false);
+      try {
+        faultyStream.seek(pageHeaderOffset);
+        Util.readPageHeader(faultyStream);
+      } catch (Exception e) {
+        Assert.fail("Received exception with message " + e.getMessage());
+      }
     }
   }
 
   @Test
-  public void partialReadWithinPageHeaderShouldThrowException() {
+  public void partialReadWithinPageHeaderShouldThrowException() throws IOException {
     int faultOffset = 10;
     // The absolute position in the stream to inject the fault
     long absoluteFaultPosition = pageHeaderOffset + faultOffset;
 
     // Create a seekable stream and wrap it with our fault-injecting stream
-    SeekableInputStream underlyingStream = new MemoryInputFile(parquetFileBytes).newStream();
-    PartialReadInputStream faultyStream = new PartialReadInputStream(underlyingStream, absoluteFaultPosition, true);
+    try (SeekableInputStream underlyingStream = getInputFile().newStream()) {
+      PartialReadInputStream faultyStream = new PartialReadInputStream(underlyingStream, absoluteFaultPosition, true);
 
-    // Assert that attempting to read the header from this faulty stream throws the expected exception
-    assertThrows("A partial read within the PageHeader should cause an IOException.", IOException.class, () -> {
-      faultyStream.seek(pageHeaderOffset);
-      Util.readPageHeader(faultyStream);
-    });
+      // Assert that attempting to read the header from this faulty stream throws the expected exception
+      assertThrows("A partial read within the PageHeader should cause an IOException.", IOException.class, () -> {
+        faultyStream.seek(pageHeaderOffset);
+        Util.readPageHeader(faultyStream);
+      });
+    }
   }
 
   // Helper classes for in-memory file handling
