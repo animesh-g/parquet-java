@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.parquet.column.ParquetProperties;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.example.data.simple.SimpleGroupFactory;
@@ -19,6 +20,7 @@ import org.apache.parquet.hadoop.example.GroupWriteSupport;
 import org.apache.parquet.hadoop.metadata.BlockMetaData;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
 import org.apache.parquet.hadoop.util.PartialReadInputStream;
 import org.apache.parquet.io.DelegatingSeekableInputStream;
 import org.apache.parquet.io.InputFile;
@@ -34,42 +36,59 @@ import org.junit.Test;
 
 public class TestPageHeaderPartialRead {
 
+  // Flag to control read source.
+  // true: read from a pre-existing file on disk.
+  // false: create a file in memory and read from it.
+  private static final boolean READ_FROM_DISK = true;
+
+  // Path to the pre-existing Parquet file.
+  // This file should be placed in the test resources directory.
+  private static final String PARQUET_FILE_PATH = "/dev/shm/test.snappy.parquet";
+
+  private static Configuration conf = new Configuration();
+  private static Path filePath;
+
   private static byte[] parquetFileBytes;
   private static long pageHeaderOffset;
   private static int pageHeaderLength;
 
   @Before
   public void setup() throws IOException {
-    // 1. Define a simple schema
-    MessageType schema = Types.buildMessage()
-        .required(PrimitiveTypeName.BINARY)
-        .as(org.apache.parquet.schema.LogicalTypeAnnotation.stringType())
-        .named("name")
-        .named("test_schema");
+    if (READ_FROM_DISK) {
+      // File file = new File(PARQUET_FILE_PATH);
+      filePath = new Path(PARQUET_FILE_PATH);
+    } else {
+      // 1. Define a simple schema
+      MessageType schema = Types.buildMessage()
+          .required(PrimitiveTypeName.BINARY)
+          .as(org.apache.parquet.schema.LogicalTypeAnnotation.stringType())
+          .named("name")
+          .named("test_schema");
 
-    Configuration conf = new Configuration();
-    GroupWriteSupport.setSchema(schema, conf);
-    SimpleGroupFactory groupFactory = new SimpleGroupFactory(schema);
+      Configuration conf = new Configuration();
+      GroupWriteSupport.setSchema(schema, conf);
+      SimpleGroupFactory groupFactory = new SimpleGroupFactory(schema);
 
-    // 2. Write a simple Parquet file to an in-memory byte array
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      // 2. Write a simple Parquet file to an in-memory byte array
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-    GroupWriteSupport.setSchema(schema, conf);
-    OutputFile newFile = new MemoryOutputFile(baos);
+      GroupWriteSupport.setSchema(schema, conf);
+      OutputFile newFile = new MemoryOutputFile(baos);
 
-    try (ParquetWriter<Group> writer = ExampleParquetWriter.builder(newFile)
-        .withConf(conf)
-        .withCompressionCodec(CompressionCodecName.UNCOMPRESSED)
-        .withRowGroupSize(1024)
-        .withPageSize(1024)
-        .withWriterVersion(ParquetProperties.WriterVersion.PARQUET_2_0)
-        .build()) {
-      writer.write(groupFactory.newGroup().append("name", "parquet"));
+      try (ParquetWriter<Group> writer = ExampleParquetWriter.builder(newFile)
+          .withConf(conf)
+          .withCompressionCodec(CompressionCodecName.UNCOMPRESSED)
+          .withRowGroupSize(1024)
+          .withPageSize(1024)
+          .withWriterVersion(ParquetProperties.WriterVersion.PARQUET_2_0)
+          .build()) {
+        writer.write(groupFactory.newGroup().append("name", "parquet"));
+      }
+      parquetFileBytes = baos.toByteArray();
     }
-    parquetFileBytes = baos.toByteArray();
 
     // 3. Read the file metadata to find the offset and size of the first page header
-    InputFile inputFile = new MemoryInputFile(parquetFileBytes);
+    InputFile inputFile = getInputFile();
     try (ParquetFileReader reader = ParquetFileReader.open(inputFile)) {
       ParquetMetadata footer = reader.getFooter();
       assertTrue("No row groups found in test file", footer.getBlocks().size() > 0);
@@ -87,6 +106,14 @@ public class TestPageHeaderPartialRead {
       }
     }
     assertTrue("Could not determine page header length", pageHeaderLength > 0);
+  }
+
+  private static InputFile getInputFile() throws IOException {
+    if (READ_FROM_DISK) {
+      return HadoopInputFile.fromPath(filePath, conf);
+    } else {
+      return new MemoryInputFile(parquetFileBytes);
+    }
   }
 
   // Provides a stream of integers from 0 to pageHeaderLength - 1 for the parameterized test
