@@ -43,8 +43,11 @@ public class TestPageHeaderPartialRead {
   private static final boolean READ_FROM_DISK = true;
 
   // Path to the pre-existing Parquet file.
-  // This file should be placed in the test resources directory.
-  private static final String PARQUET_FILE_PATH = "/dev/shm/test.snappy.parquet";
+  // This file should be placed in the /dev/shm directory to insure in-memory reads.
+  private static final String PARQUET_FILE_PATH = "/dev/shm/test.parquet";
+
+  // Offset at which fault will occur.
+  private static final int FAULT_OFFSET = 10;
 
   private static Configuration conf = new Configuration();
   private static Path filePath;
@@ -117,11 +120,6 @@ public class TestPageHeaderPartialRead {
     }
   }
 
-  // Provides a stream of integers from 0 to pageHeaderLength - 1 for the parameterized test
-  private static Stream<Integer> faultOffsets() {
-    return IntStream.range(0, pageHeaderLength).boxed();
-  }
-
   // Full read of PageHeader from a valid stream should succeed.
   @Test
   public void fullReadOfPageHeaderShouldSucceed() {
@@ -135,9 +133,8 @@ public class TestPageHeaderPartialRead {
 
   @Test
   public void intermediatePartialReadWithinPageHeaderShouldNotThrowException() throws IOException {
-    int faultOffset = 10;
     // The absolute position in the stream to inject the fault
-    long absoluteFaultPosition = pageHeaderOffset + faultOffset;
+    long absoluteFaultPosition = pageHeaderOffset + FAULT_OFFSET;
 
     try (SeekableInputStream underlyingStream = getInputFile().newStream()) {
       // Create a seekable stream and wrap it with our fault-injecting stream
@@ -154,9 +151,8 @@ public class TestPageHeaderPartialRead {
 
   @Test
   public void partialReadWithinPageHeaderShouldThrowException() throws IOException {
-    int faultOffset = 10;
     // The absolute position in the stream to inject the fault
-    long absoluteFaultPosition = pageHeaderOffset + faultOffset;
+    long absoluteFaultPosition = pageHeaderOffset + FAULT_OFFSET;
 
     // Create a seekable stream and wrap it with our fault-injecting stream
     try (SeekableInputStream underlyingStream = getInputFile().newStream()) {
