@@ -113,16 +113,11 @@ public class TestPageHeaderPartialRead {
 
   private static InputFile getInputFile() throws IOException {
     if (PARQUET_FILE_PATH.startsWith("gs://")) {
-      // Set properties to enable gRPC and replicate the production environment.
+      // Set properties to enable gRPC
       conf.setBoolean("fs.gs.grpc.enable", true);
       conf.set("fs.gs.client.type", "STORAGE_CLIENT");
       conf.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem");
       conf.set("fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS");
-      conf.set("fs.gs.inputstream.fadvise", "AUTO_RANDOM");
-      conf.setInt("fs.gs.inputstream.min.range.request.size", 1048576);
-      conf.setBoolean("fs.gs.inputstream.fast.fail.on.not.found.enable", true);
-      conf.setBoolean("fs.gs.client.caching.experiment.enabled", true);
-      conf.setBoolean("fs.gs.stream.caller.context.enable", true);
     }
     if (READ_FROM_DISK) {
       return HadoopInputFile.fromPath(filePath, conf);
