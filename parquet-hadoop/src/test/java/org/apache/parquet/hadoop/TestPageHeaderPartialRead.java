@@ -36,12 +36,13 @@ import org.junit.Test;
 public class TestPageHeaderPartialRead {
 
   // Flag to control read source.
-  // true: read from a pre-existing file on disk.
+  // true: read from a pre-existing file on disk or from GCS.
   // false: create a file in memory and read from it.
   private static final boolean READ_FROM_DISK = true;
 
   // Path to the pre-existing Parquet file.
   // This file should be placed in the /dev/shm directory to insure in-memory reads.
+  // Use complete gsutil URI(starts with gs://) to access object from GCS.
   private static final String PARQUET_FILE_PATH = "gs://anim_test-bucket-1/titanic.parquet";
 
   // Offset at which fault will occur.
