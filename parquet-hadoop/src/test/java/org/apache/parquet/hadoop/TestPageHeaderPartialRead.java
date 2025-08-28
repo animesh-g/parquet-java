@@ -5,8 +5,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.column.ParquetProperties;
@@ -57,8 +57,9 @@ public class TestPageHeaderPartialRead {
   @Before
   public void setup() throws IOException {
     if (READ_FROM_DISK) {
-      File file = new File(PARQUET_FILE_PATH);
-      filePath = new Path(file.toURI());
+      // File file = new File(PARQUET_FILE_PATH);
+      // filePath = new Path(file.toURI());
+      filePath = new Path(URI.create(PARQUET_FILE_PATH));
     } else {
       // 1. Define a simple schema
       MessageType schema = Types.buildMessage()
