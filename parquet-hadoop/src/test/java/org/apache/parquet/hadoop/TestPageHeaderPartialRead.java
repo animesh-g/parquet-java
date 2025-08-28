@@ -7,8 +7,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.column.ParquetProperties;
@@ -44,7 +42,7 @@ public class TestPageHeaderPartialRead {
 
   // Path to the pre-existing Parquet file.
   // This file should be placed in the /dev/shm directory to insure in-memory reads.
-  private static final String PARQUET_FILE_PATH = "/dev/shm/test.parquet";
+  private static final String PARQUET_FILE_PATH = "gs://anim_test-bucket-1/titanic.parquet";
 
   // Offset at which fault will occur.
   private static final int FAULT_OFFSET = 10;
@@ -113,6 +111,18 @@ public class TestPageHeaderPartialRead {
   }
 
   private static InputFile getInputFile() throws IOException {
+    if (PARQUET_FILE_PATH.startsWith("gs://")) {
+      // Set properties to enable gRPC and replicate the production environment.
+      conf.setBoolean("fs.gs.grpc.enable", true);
+      conf.set("fs.gs.client.type", "STORAGE_CLIENT");
+      conf.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem");
+      conf.set("fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS");
+      conf.set("fs.gs.inputstream.fadvise", "AUTO_RANDOM");
+      conf.setInt("fs.gs.inputstream.min.range.request.size", 1048576);
+      conf.setBoolean("fs.gs.inputstream.fast.fail.on.not.found.enable", true);
+      conf.setBoolean("fs.gs.client.caching.experiment.enabled", true);
+      conf.setBoolean("fs.gs.stream.caller.context.enable", true);
+    }
     if (READ_FROM_DISK) {
       return HadoopInputFile.fromPath(filePath, conf);
     } else {
@@ -123,7 +133,7 @@ public class TestPageHeaderPartialRead {
   // Full read of PageHeader from a valid stream should succeed.
   @Test
   public void fullReadOfPageHeaderShouldSucceed() {
-    try(SeekableInputStream stream = getInputFile().newStream()) {
+    try (SeekableInputStream stream = getInputFile().newStream()) {
       stream.seek(pageHeaderOffset);
       Util.readPageHeader(stream);
     } catch (Exception e) {
@@ -156,7 +166,8 @@ public class TestPageHeaderPartialRead {
 
     // Create a seekable stream and wrap it with our fault-injecting stream
     try (SeekableInputStream underlyingStream = getInputFile().newStream()) {
-      PartialReadInputStream faultyStream = new PartialReadInputStream(underlyingStream, absoluteFaultPosition, true);
+      PartialReadInputStream faultyStream =
+          new PartialReadInputStream(underlyingStream, absoluteFaultPosition, true);
 
       // Assert that attempting to read the header from this faulty stream throws the expected exception
       assertThrows("A partial read within the PageHeader should cause an IOException.", IOException.class, () -> {
