@@ -219,7 +219,7 @@
       <groupId>com.google.cloud.bigdataoss</groupId>
       <artifactId>gcs-connector</artifactId>
       <!-- Use a version compatible with your Hadoop dependencies -->
-      <version>hadoop3-2.2.28</version>
+      <version>2.2.28</version>
       <classifier>hadoop3-shaded</classifier>
       <scope>test</scope>
     </dependency>
