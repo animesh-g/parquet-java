@@ -58,8 +58,6 @@ public class TestPageHeaderPartialRead {
   @Before
   public void setup() throws IOException {
     if (READ_FROM_DISK) {
-      // File file = new File(PARQUET_FILE_PATH);
-      // filePath = new Path(file.toURI());
       filePath = new Path(URI.create(PARQUET_FILE_PATH));
     } else {
       // 1. Define a simple schema
