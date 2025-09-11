@@ -43,7 +43,7 @@ public class TestPageHeaderPartialRead {
   // Path to the pre-existing Parquet file.
   // This file should be placed in the /dev/shm directory to insure in-memory reads.
   // Use complete gsutil URI(starts with gs://) to access object from GCS.
-  private static final String PARQUET_FILE_PATH = "gs://anim_test-bucket-1/titanic.parquet";
+  private static final String PARQUET_FILE_PATH = "gs://anim_test-bucket-1/parquet_fail_object/000002_0";
 
   // Offset at which fault will occur.
   private static final int FAULT_OFFSET = 10;
